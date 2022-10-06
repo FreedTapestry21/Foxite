@@ -1,7 +1,7 @@
 #!/bin/python3
 
 #
-# Foxite Server v1.0.0
+# Foxite Server v1.1.0
 # Copyright (c) 2022 FreedTapstry21
 #
 
@@ -11,16 +11,9 @@ import socket, json, os, sys
 # Startup message
 STARTMSG = """
 Welcome to Foxite Server!
-Version 1.0.0
+Version 1.1.0
 Copyright (c) 2022 FreedTapstry21
 """
-
-# Database
-database = {
-    "version": "1.0.0",
-    "license": "MIT",
-    "author": "FreedTapstry21"
-}
 
 # notify class
 # Used for logging info onto the Terminal display
@@ -51,9 +44,11 @@ class server:
     def __init__(self):
         pass
     
-    def get_url(self):
+    def connect(self):
         # Waits untill client excepts
         self.client_sock, self.client_addr = self.sock.accept()
+    
+    def get_url(self):
         request = self.client_sock.recv(1024).decode()
 
         # Checks if it's a HTTP GET request is, if not then closes the connection
@@ -121,10 +116,7 @@ class api:
         pass
     
     def detect(self, adv_url):
-        if adv_url[0] == Server.settings["api_link"]:
-            return "rest_api"
-        else:
-            return "web_api"
+        return "web_api"
 
     def web_api(self, url):
         # Web
@@ -139,28 +131,12 @@ class api:
             Notify.info("[web] " + str(Server.client_addr) + " requested " + str(url) + " but the file was not found!")
         else:
             Notify.error("[web] " + str(Server.client_addr) + " requested " + str(url) + " but the get_file function returned an unknown status code.")
-        
-        response = data
-        Server.client_sock.send(response.encode())
 
-        return 0
+        header = str("HTTP/1.1 200 OK\n\n").encode()
+        response = str(data).encode()
 
-    def rest_api(self, url, adv_url):
-        adv_url.pop(0)
-
-        req = adv_url[0]
-
-        if req == "version": data = database["version"]; status = 0
-        elif req == "license": data = database["license"]; status = 0
-        elif req == "author": data = database["author"]; status = 0
-        else: status = 1
-
-        if status == 0: Notify.info("[api] " + str(Server.client_addr) + " requested " + str(url))
-        elif status == 1: Notify.info("[api] " + str(Server.client_addr) + " requested " + str(url) + " but the server was unable to complete the api call.")
-        else: Notify.error("[api] " + str(Server.client_addr) + " requested " + str(url) + " but the server returned an unknown status code.")
-
-        response = data
-        Server.client_sock.send(response.encode())
+        Server.client_sock.send(header)
+        Server.client_sock.send(response)
 
         return 0
 
@@ -207,14 +183,11 @@ class app:
         Notify.print()
 
         while True:
+            Server.connect()
             url, adv_url = Server.get_url()
             type = Api.detect(adv_url)
             if type == "web_api":
                 status = Api.web_api(url)
-                Server.client_sock.close()
-                Notify.print()
-            elif type == "rest_api":
-                status = Api.rest_api(url, adv_url)
                 Server.client_sock.close()
                 Notify.print()
             else:

@@ -1,7 +1,7 @@
 #!/bin/python3
 
 #
-# Foxite Launcher v1.0.0
+# Foxite Launcher v1.1.0
 # Copyright (c) 2022 FreedTapstry21
 #
 
