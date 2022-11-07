@@ -19,7 +19,7 @@ Copyright (c) 2022 FreedTapstry21
 # Used for logging info onto the Terminal display
 class notify:
     def __init__(self):
-        self.msg= []
+        self.msg = []
 
     def clear(self):
         self.msg = []
