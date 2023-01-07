@@ -1,0 +1,230 @@
+#!/bin/python3
+
+#
+# Foxite
+# Version v2.0
+# Copyright (c) 2022-2023 FreedTapstry21
+#
+
+# Library imports
+import socket, json, os, sys
+
+# Defines STARTMSG and HELPMSG
+STARTMSG = """
+Foxite
+Version v2.0
+Copyright (c) 2022-2023 FreedTapstry21
+"""
+
+HELPMSG = """Foxite, version v2.0 
+Usage: """ + sys.argv[0] + """ [flags]
+
+Available flags:
+    --help
+    -h [host]
+    -p [port]
+    -d [dir]
+    -l [maximum amount of listeners]"""
+
+# notify class
+# Used for logging info onto the Terminal display
+class notify:
+    def __init__(self):
+        self.msg = []
+
+    def clear(self):
+        self.msg = []
+
+    def info(self, msg):
+        self.msg.append("[INFO] " + str(msg))
+
+    def error(self, msg):
+        self.msg.append("[ERROR] " + str(msg))
+
+    def raw_print(self, msg):
+        self.msg.append(str(msg))
+
+    def space(self):
+        self.msg.append("")
+
+    def print(self):
+        for x in self.msg:
+            print(x)
+        self.clear()
+
+# server class
+# Used for setting up and running the http server
+class server:
+    def __init__(self):
+        self.host = "0.0.0.0"
+        self.port = "80"
+        self.listeners = "1"
+        self.dir = "./"
+
+    
+    def connect(self):
+        # Waits untill client excepts
+        self.client_sock, self.client_addr = self.sock.accept()
+    
+    def get_url(self):
+        request = self.client_sock.recv(1024).decode()
+
+        # Checks if it's a HTTP GET request is, if not then closes the connection
+        if request.split(' ')[0] != "GET":
+            self.client_sock.close() 
+
+        # Splits the headers
+        headers = request.split('\n')
+        url = headers[0].split()[1]
+        adv_url = url.split("/")
+
+        adv_url.pop(0)
+
+        return url, adv_url
+
+    def get_file(self, dir, url):
+        found = False
+        if found == False:
+            try:
+                file = open(dir + url + ".html", "r")
+                found = True
+            except:
+                pass
+        if found == False:
+            try:
+                file = open(dir + url, "r")
+                found = True
+            except:
+                pass
+        if found == False:
+            return 1, "<html><head><title>404 - Not found!</title></head><body><h1>404 - Not found!</h1><h2>The file you where looking for was not found!</h2></body></html>"
+        else:
+            return 0, file.read()
+    
+    def get_settings(self):
+        if len(sys.argv) > 1:
+            i = 0
+            for x in sys.argv:
+                if x == sys.argv[0]:
+                    pass
+                elif x == "--help":
+                    Notify.raw_print(HELPMSG)
+                    Notify.print()
+                    sys.exit()
+                elif x == "-d":
+                    try: self.dir = sys.argv[i + 1]
+                    except: Notify.error("-d flag was specified but no arguments where given"); Notify.print(); sys.exit()
+                    sys.argv[i + 1] = "pass"
+                elif x == "-h":
+                    try: self.host = sys.argv[i + 1]
+                    except: Notify.error("-h flag was specified but no arguments where given"); Notify.print(); sys.exit()
+                    sys.argv[i + 1] = "pass"
+                elif x == "-p":
+                    try: self.port = sys.argv[i + 1]
+                    except: Notify.error("-p flag was specified but no arguments where given"); Notify.print(); sys.exit()
+                    sys.argv[i + 1] = "pass"
+                elif x == "pass":
+                    pass
+                else:
+                    Notify.error("An invalid argument has been given"); Notify.print(); sys.exit()
+                i = i + 1
+        else:
+            pass
+        return 0
+
+    def bind(self, host, port):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            self.sock.bind((host, int(port)))
+        except:
+            Notify.error("Failed to bind to port!")
+            return 1
+        self.sock.listen(int(self.listeners))
+        return 0
+                
+
+# Web function
+# Used to serve the page to the client
+def Web(url):
+    # Web
+    if url == "/":
+        url = "/index.html"
+    
+    status, data = Server.get_file(Server.dir, url)
+
+    if status == 0:
+        Notify.info(str(Server.client_addr) + " requested " + str(url))
+    elif status == 1:
+        Notify.info(str(Server.client_addr) + " requested " + str(url) + " but the file was not found!")
+    else:
+        Notify.error(str(Server.client_addr) + " requested " + str(url) + " but the get_file function returned an unknown status code.")
+
+    header = str("HTTP/1.1 200 OK\n\n").encode()
+    response = str(data).encode()
+
+    Server.client_sock.send(header)
+    Server.client_sock.send(response)
+
+    return
+
+# Define classes
+Notify = notify()
+Server = server()
+Notify = notify()
+
+# Checks arguments
+status = Server.get_settings()
+
+if status == 0: pass
+else: Notify.error("Foxite was unable to start. Please check your arguments."); Notify.print(); sys.exit()
+
+# 
+# Server initialization
+# 
+
+Notify.raw_print(STARTMSG)
+Notify.info("Starting server...")
+Notify.print()
+Notify.space()
+
+# Displays settings
+Notify.info("Host: " + Server.host)
+Notify.info("Port: " + Server.port)
+Notify.info("Directory: " + Server.dir)
+Notify.space()
+Notify.print()
+
+# Checks and setting variables
+current_dir = os.getcwd()
+
+try: os.chdir(Server.dir); os.chdir(current_dir)
+except: os.mkdir(Server.dir)
+
+host = Server.host
+port = Server.port
+
+status = Server.bind(host, port)
+
+if status == 1: Notify.info("Unable to continue. Quitting."); Notify.print(); sys.exit()
+else: Notify.print()
+
+Notify.info("Now listening on " + str(host) + ":" + str(port))
+Notify.info("Press Ctrl+C to exit!")
+Notify.space()
+Notify.print()
+
+try:
+    while True:
+        Server.connect()
+        url, adv_url = Server.get_url()
+        Web(url)
+        Server.client_sock.close()
+        Notify.print()
+except KeyboardInterrupt:
+    Notify.info("Quiting."); Notify.print(); sys.exit()
+except Exception as err:
+    Notify.error("An internal error occured!"); Notify.error("Internal error: " + err); Notify.print(); sys.exit()
+
+#
+# End of file
+#
