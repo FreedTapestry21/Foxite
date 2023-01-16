@@ -2,7 +2,7 @@
 
 #
 # Foxite
-# Version v2.0
+# Version v2.1
 # Copyright (c) 2022-2023 FreedTapstry21
 #
 
@@ -12,19 +12,18 @@ import socket, json, os, sys
 # Defines STARTMSG and HELPMSG
 STARTMSG = """
 Foxite
-Version v2.0
+Version v2.1
 Copyright (c) 2022-2023 FreedTapstry21
 """
 
-HELPMSG = """Foxite, version v2.0 
+HELPMSG = """Foxite, version v2.1
 Usage: """ + sys.argv[0] + """ [flags]
 
 Available flags:
     --help
     -h [host]
     -p [port]
-    -d [dir]
-    -l [maximum amount of listeners]"""
+    -d [dir]"""
 
 # notify class
 # Used for logging info onto the Terminal display
@@ -86,20 +85,27 @@ class server:
         found = False
         if found == False:
             try:
-                file = open(dir + url + ".html", "r")
+                with open(dir + url + ".html", 'rb') as file:
+                    contents = file.read()
                 found = True
             except:
                 pass
         if found == False:
             try:
-                file = open(dir + url, "r")
+                with open(dir + url, 'rb') as file:
+                    contents = file.read()
+                found = True
                 found = True
             except:
                 pass
         if found == False:
             return 1, "<html><head><title>404 - Not found!</title></head><body><h1>404 - Not found!</h1><h2>The file you where looking for was not found!</h2></body></html>"
         else:
-            return 0, file.read()
+            try:
+                contents = contents.decode()
+            except:
+                pass
+            return 0, contents
     
     def get_settings(self):
         if len(sys.argv) > 1:
@@ -223,7 +229,7 @@ try:
 except KeyboardInterrupt:
     Notify.info("Quiting."); Notify.print(); sys.exit()
 except Exception as err:
-    Notify.error("An internal error occured!"); Notify.error("Internal error: " + err); Notify.print(); sys.exit()
+    Notify.error("An internal error occured!"); Notify.error("Internal error: " + str(err)); Notify.print(); sys.exit()
 
 #
 # End of file
